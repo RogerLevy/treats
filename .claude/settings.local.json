@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Read(//mnt/c/Users/roger/Desktop/vfxland5_starling/coolstuff/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
