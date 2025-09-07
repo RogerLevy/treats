@@ -16,7 +16,7 @@
 		"search.quickAccess.preserveInput": true,
 		"search.searchEditor.reusePriorSearchConfiguration": true,
 		"search.searchOnType": false,
-		"search.sortOrder": "modified"
+		"search.sortOrder": "modified",
 	},
 	"tasks": {
 		"version": "2.0.0",
