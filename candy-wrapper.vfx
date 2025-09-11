@@ -1,0 +1,202 @@
+\ dependencies (from another file)
+: need ( nam len - obj )
+    >pad find 0= if 
+        pad count f" `%s` not found" -1 -rot .abort
+    then execute ;
+
+: att ( col row tilemap - )
+    -> tw 2@ 2* at ;
+
+\ ------------------------------------------------------------------------------
+
+require scripts/player.vfx
+require scripts/goober.vfx
+require scripts/explo.vfx
+
+variable clock
+variable level#
+0 value player0 \ actor
+bgm *bgm0* ost.mp3
+
+: get-level ( n - tilemap ) f" level%n.tm" need ;
+
+: load-map ( n - ) 
+    level# @ + 0 #levels clamp level# ! 
+    level# @ get-level to tm0 ;
+
+: ?tile ( col row tilemap - )
+    {: col row tm | a :}
+    col row tm [][] to a
+    a @ case
+        TILE_WALL of 4 rnd TILE_WALL + a ! endof
+        TILE_PLAYER of col row tm att player one to player0   0 a ! endof
+    endcase ;
+
+: start-map ( - )
+    tm0 tmeach> ?tile ;
+
+: /player ( - ) 72 85 at player one to player0 ;
+: /title  ( - ) center at title-logo one as>  ;
+: /audio  ( - ) hush *bgm0* ;
+
+: level ( n - ) 
+    just load-map /player start-map ;
+
+: reset ( - ) 0 level /title /audio ;
+: adv ( - ) level# @ 1 + level ;
+: win ( - ) 1.0 timer> adv ;
+: #goobers ( - n ) 0 actives> me goober is? -exit 1 + ;
+: ?win ( - ) #goobers ?exit win ;
+: /lose ( - ) center at _lose one drop ;
+: lose ( - ) *lose* /lose 1.0 timer> level# @ level ;
+
+\ : explode ( - ) should be in another component
+
+
+(( Original files:
+
+# Global.gd -------------------------------------------------------------------
+
+extends Node2D
+
+var level := 0
+const firstLevel := 0
+const lastLevel := 21
+var Game
+
+var OST = load("res://Audio/OST.mp3")
+var audio
+
+func _ready():
+	await get_tree().create_timer(0.1).timeout
+	
+	audio = AudioStreamPlayer.new()
+	add_child(audio)
+	audio.stream = OST
+	audio.play()
+	audio.finished.connect(audio.play)
+
+func _input(event):
+	if event.is_action_pressed("ui_fullscreen"):
+		var win_full = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+		DisplayServer.mouse_set_mode(DisplayServer.MOUSE_MODE_VISIBLE if win_full else DisplayServer.MOUSE_MODE_HIDDEN)
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if win_full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+func wrapp(pos := Vector2.ZERO):
+	return Vector2(wrapf(pos.x, 0.0, 144.0), wrapf(pos.y, 0.0, 144.0) )
+
+# Game.gd ----------------------------------------------------------------------
+
+extends Node2D
+
+var tmpath := "res://TileMap/"
+enum {TILE_WALL = 0, TILE_PLAYER = 1, TILE_GOOBER = 2}
+var NodeTileMap
+
+var ScenePlayer = load("res://Scene/Player.tscn")
+var SceneGoober = load("res://Scene/Goober.tscn")
+var SceneExplo = load("res://Scene/Explosion.tscn")
+
+@onready var NodeGoobers := $Goobers
+@onready var NodeAudioWin := $Audio/Win
+@onready var NodeAudioLose := $Audio/Lose
+@onready var NodeSprite := $Sprite2D
+
+var clock := 0.0
+var delay := 1.5
+var check := false
+var change := false
+
+func _ready():
+	global.Game = self
+	
+	if global.level == global.firstLevel or global.level == global.lastLevel:
+		NodeSprite.frame = 0 if global.level == global.firstLevel else 3
+		NodeSprite.visible = true
+		var p = ScenePlayer.instantiate()
+		p.position = Vector2(72, 85)
+		p.scale.x = -1 if randf() < 0.5 else 1
+		p.set_script(null)
+		add_child(p)
+	
+	MapLoad()
+	MapStart()
+
+func _process(delta):
+	clock += delta
+	# title screen is the first level, and "game complete" screen is the last level:
+	if btn.p("jump") and (global.level == global.firstLevel or (global.level == global.lastLevel  and clock > 0.5) ):
+		global.level = posmod(global.level + 1, global.lastLevel + 1)
+		DoChange()
+	
+	MapChange(delta)
+
+func MapLoad():
+	var nxtlvl = min(global.level, global.lastLevel)
+	var tm = load(tmpath + str(nxtlvl) + ".tscn").instantiate()
+	tm.name = "TileMap"
+	tm.z_as_relative = false
+	tm.z_index = 0
+	add_child(tm)
+	NodeTileMap = tm
+
+func MapStart():
+	print("--- MapStart: Begin ---")
+	print("global.level: ", global.level)
+	for pos in NodeTileMap.get_used_cells(0):
+		var id = NodeTileMap.get_cell_source_id(0, pos)
+		if id == TILE_WALL:
+			print(pos, ": Wall")
+			var atlas = Vector2(randi_range(0, 2), randi_range(0, 2) )
+			NodeTileMap.set_cell(0, pos, TILE_WALL, atlas)
+		elif id == TILE_PLAYER or id == TILE_GOOBER:
+			var p = id == TILE_PLAYER
+			print(pos, ": Player" if p else ": Goober")
+			var inst = (ScenePlayer if p else SceneGoober).instantiate()
+			inst.position = NodeTileMap.map_to_local(pos) + Vector2(4, 0 if p else 1)
+			(self if p else NodeGoobers).add_child(inst)
+			# remove tile from map
+			NodeTileMap.set_cell(0, pos, -1)
+	print("--- MapStart: End ---")
+
+func MapChange(delta):
+	# if its time to change scene
+	if change:
+		delay -= delta
+		if delay < 0:
+			DoChange()
+		return # skip the rest if change == true
+	
+	# should i check?
+	if check:
+		check = false
+		var count = NodeGoobers.get_child_count()
+		print("Goobers: ", count)
+		if count == 0:
+			Win()
+
+func Lose():
+	change = true
+	NodeAudioLose.pitch_scale = randf_range(0.9, 1.1)
+	NodeAudioLose.play()
+	NodeSprite.visible = true
+	NodeSprite.frame = 2
+	global.level = max(0, global.level - 1)
+
+func Win():
+	change = true
+	NodeAudioWin.pitch_scale = randf_range(0.9, 1.1)
+	NodeAudioWin.play()
+	NodeSprite.visible = true
+	global.level = min(global.lastLevel, global.level + 1)
+	print("Level Complete!, change to level: ", global.level)
+
+func DoChange():
+	change = false
+	get_tree().reload_current_scene()
+
+func Explode(arg : Vector2):
+	var xpl = SceneExplo.instantiate()
+	xpl.position = arg
+	xpl.get_node("AudioStreamPlayer").pitch_scale = randf_range(0.9, 1.1)
+	add_child(xpl)
