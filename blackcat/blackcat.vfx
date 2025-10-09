@@ -1,0 +1,9 @@
+: backdrop ( - )
+    1e 1e 1e 1e al_clear_to_color ;
+
+: blackcat
+    show> backdrop sprites animate step ;
+
+just 
+kitty1.scn load
+blackcat

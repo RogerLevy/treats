@@ -1,0 +1,12 @@
+class: KITTY
+    ACTOR derive
+class;
+
+\ blackcats.png 16 16 +tileset blackcats.ts
+
+blackcats.ts animation idle.anm    0 3 range,
+blackcats.ts animation run.anm     41 43 range,
+blackcats.ts animation climb.anm   64 67 range,
+
+kitty :: init ( - )
+    climb.anm 0.25 cycle ;

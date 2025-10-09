@@ -5,7 +5,7 @@ class: SPEWER
 class;
 
 : somewhere  gamew gameh 2rnd ;
-: pos me 0 0 from ;
+\ : pos me 0 0 from ;
 : pos somewhere at ;
 
 SPEWER :: init ( - )
