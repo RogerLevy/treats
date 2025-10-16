@@ -5,7 +5,15 @@
       "Bash(git commit:*)",
       "Bash(git config:*)",
       "Read(//mnt/c/Users/roger/Desktop/vfxland5_starling/coolstuff/**)",
-      "Read(//mnt/c/Users/roger/Desktop/dev/vfxland5_starling/coolstuff/**)"
+      "Read(//mnt/c/Users/roger/Desktop/dev/vfxland5_starling/coolstuff/**)",
+      "Read(//mnt/c/local-repos/treats.git/**)",
+      "Bash(git log:*)",
+      "Bash(git submodule:*)",
+      "Bash(cat:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(awk:*)",
+      "Bash(git grep:*)",
+      "Bash(xargs -I {} git grep -l \"autoclass on\" fall-2025 -- {})"
     ],
     "deny": [],
     "ask": []

@@ -2,4 +2,34 @@
 \ treats 
 \ ------------------------------------------------------------------------------ 
  
-include %idir%\vfxland5_01\spunk\loader.vfx 
+\ Constants
+\ 320 constant gamew
+\ 240 constant gameh
+\ 1024 constant #actors
+
+\ Load engine
+include %vfxland5%\supershow\supershow.vfx
+include %vfxland5%\spunk\spunk.vfx
+
+\ load game-specific modules (dependencies)
+\ include %idir%\...
+
+\ Load the automated script and asset loads (if i'm keeping any of it).
+\ This includes all scripts in modes\.
+load-project
+
+redef : main
+    just
+    50 50 at spewer one drop
+    50 50 at spewer one drop
+    50 50 at spewer one drop
+    50 50 at spewer one drop
+    50 50 at spewer one drop
+    50 50 at spewer one drop
+;
+
+\ Load tools and run tests
+debug @ [if]
+    main
+[then]
+
